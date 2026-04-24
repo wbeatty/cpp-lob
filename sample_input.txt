@@ -1,0 +1,6 @@
+COMMENT: Random workload — all orders are generated from SEED and counts below
+NUM_TRADERS: 4
+NUM_STOCKS: 2
+SEED: 42
+NUM_ORDERS: 500
+ARRIVAL_RATE: 4
