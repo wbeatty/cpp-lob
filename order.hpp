@@ -4,13 +4,13 @@
 struct Limit;
 
 struct Order {
-    std::uint32_t idNumber;
-    bool buyOrSell;
-    std::uint32_t shares;
-    std::uint32_t limit;
-    std::uint32_t entryTime;
-    std::uint32_t eventTime;
-    Order *nextOrder;
-    Order *prevOrder;
-    Limit *parentLimit;
+    std::uint32_t idNumber = 0;
+    bool buyOrSell = false;
+    std::uint32_t shares = 0;
+    std::uint32_t limit = 0;
+    std::uint64_t entryTime = 0;
+    std::uint64_t eventTime = 0;
+    Order *nextOrder = nullptr;
+    Order *prevOrder = nullptr;
+    Limit *parentLimit = nullptr;
 };

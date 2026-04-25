@@ -4,12 +4,14 @@
 struct Order; // forward declaration — Limit only holds pointers
 
 struct Limit {
-    std::uint32_t limitPrice;
+    std::uint32_t limitPrice; 
     std::uint32_t size;
     std::uint32_t totalVolume;
-    Limit *parent;
-    Limit *leftChild;
-    Limit *rightChild;
-    Order *headOrder;
-    Order *tailOrder;
+    Limit *parent = nullptr;
+    Limit *leftChild = nullptr;
+    Limit *rightChild = nullptr;
+    Order *headOrder = nullptr;
+    Order *tailOrder = nullptr;
+
+    void addOrder(Order& order);
 };
