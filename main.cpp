@@ -1,6 +1,6 @@
 #include <iostream>
-#include "market.hpp"
 #include <time.h>
+#include "market.hpp"
 
 using namespace std;
 
@@ -11,7 +11,8 @@ int main() {
 
     Market market;
     cout << "Processing orders...\n";
-    market.getOrders();
+    market.readOrders(std::cin);
+
 
     clock_t end = clock();
     cout << "Time taken: " << static_cast<double>(end - start) / CLOCKS_PER_SEC << " seconds\n";
