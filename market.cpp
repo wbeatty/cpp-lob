@@ -1,10 +1,9 @@
 #include "market.hpp"
-#include "order.hpp"
-#include "limit.hpp"
 #include <chrono>
 #include <charconv>
+#include <thread>
 
-Market::Market() {
+Market::Market() : orderQueue(4095) {
     buyTree = nullptr;
     sellTree = nullptr;
     lowestSell = nullptr;
@@ -25,7 +24,7 @@ void Market::readOrders(std::istream& inputStream) {
         order->buyOrSell = (p[0] == 'B');
         p += 2;
 
-        auto [ptr1, ec1] = std::from_chars(p, end, order->limit);
+        auto [ptr1, ec1] = std::from_chars(p, end, order->limitPrice);
 
         if (ec1 != std::errc()) {
             throw std::runtime_error("Invalid limit price");
@@ -39,20 +38,43 @@ void Market::readOrders(std::istream& inputStream) {
         order->idNumber = idNumber++;
         order->entryTime = std::chrono::system_clock::now().time_since_epoch().count();
 
-        addOrder(order);
+        queueOrder(order);
+    }
+    inputDone.store(true, std::memory_order_release);
+}
+
+void Market::queueOrder(Order *order) {
+    if (!orderQueue.push(order)) {
+        throw std::runtime_error("Order queue is full");
     }
 }
 
 void Market::addOrder(Order *order) {
     // Check if limit already exists
-    Limit *limit = findLimit(order->limit, order->buyOrSell);
+    Limit *limit = findLimit(order->limitPrice, order->buyOrSell);
 
     orderMap[order->idNumber] = order;
 
     // Create the limit if it doesn't exist
-    if (limit == nullptr) limit = createLimit(order->limit, order->buyOrSell);
+    if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrSell);
     
     limit->addOrder(*order);
+}
+
+// Main matching engine loop
+void Market::processOrders() {
+    Order *order;
+    while (true) {
+        if (orderQueue.pop(order)) {
+            addOrder(order);
+        } else if (inputDone.load(std::memory_order_acquire)) {
+            // read in any orders pushed after the flag was set
+            while (orderQueue.pop(order)) addOrder(order);
+            break;
+        } else {
+            std::this_thread::yield();
+        }
+    }
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist

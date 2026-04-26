@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-struct Order; // forward declaration — Limit only holds pointers
+struct Order;
 
 struct Limit {
     std::uint32_t limitPrice; 

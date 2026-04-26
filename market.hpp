@@ -1,15 +1,17 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
 #include <istream>
 #include <map>
-
-struct Order;
-struct Limit;
+#include "order.hpp"
+#include "limit.hpp"
+#include "queue.hpp"
 
 class Market {
 public:
     Market();
     void readOrders(std::istream& inputStream);
+    void processOrders();
 private:
     Limit *buyTree;
     Limit *sellTree;
@@ -18,7 +20,10 @@ private:
     std::map<std::uint32_t, Order*> orderMap; // order id -> order pointer
     std::map<std::uint32_t, Limit*> buyLimitMap; // limit price -> limit pointer
     std::map<std::uint32_t, Limit*> sellLimitMap; // limit price -> limit pointer
+    SPSCQueue<Order*> orderQueue;
+    std::atomic<bool> inputDone{false};
 
+    void queueOrder(Order *order);
     void addOrder(Order *order);
     void cancelOrder(Order& order);
     void executeOrder(Order& order);

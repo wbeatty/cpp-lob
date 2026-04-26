@@ -1,7 +1,7 @@
 #include <iostream>
 #include <time.h>
 #include "market.hpp"
-
+#include <thread>
 using namespace std;
 
 int main() {
@@ -11,8 +11,12 @@ int main() {
 
     Market market;
     cout << "Processing orders...\n";
-    market.readOrders(std::cin);
 
+    std::thread readOrdersThread([&market]() { market.readOrders(std::cin); });
+    std::thread processOrdersThread([&market]() { market.processOrders(); });
+
+    readOrdersThread.join();
+    processOrdersThread.join();
 
     clock_t end = clock();
     cout << "Time taken: " << static_cast<double>(end - start) / CLOCKS_PER_SEC << " seconds\n";
