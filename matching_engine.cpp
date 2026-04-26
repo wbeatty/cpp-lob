@@ -1,4 +1,5 @@
 #include "market.hpp"
+#include <iostream>
 #include <thread>
 
 // Main matching engine loop
@@ -19,6 +20,7 @@ void Market::processOrders() {
 
 void Market::addOrder(Order *order) {
     // Check if limit already exists
+    std::cout << "Adding order " << order->idNumber << " with limit price " << order->limitPrice << " and shares " << order->shares << "\n";
     Limit *limit = findLimit(order->limitPrice, order->buyOrSell);
 
     orderMap[order->idNumber] = order;
@@ -117,4 +119,12 @@ void Limit::addOrder(Order& order) {
     order.parentLimit = this;
     size++;
     totalVolume += order.shares;
+}
+
+std::uint32_t Market::getBestBid() {
+    return highestBuy->limitPrice;
+}
+
+std::uint32_t Market::getBestAsk() {
+    return lowestSell->limitPrice;
 }

@@ -10,8 +10,6 @@ int main() {
     clock_t start = clock();
 
     Market market;
-    cout << "Processing orders...\n";
-
     std::thread readOrdersThread([&market]() { market.readOrders(std::cin); });
     std::thread processOrdersThread([&market]() { market.processOrders(); });
 
@@ -20,5 +18,7 @@ int main() {
 
     clock_t end = clock();
     cout << "Time taken: " << static_cast<double>(end - start) / CLOCKS_PER_SEC << " seconds\n";
+    cout << "Best bid: " << market.getBestBid() << endl;
+    cout << "Best ask: " << market.getBestAsk() << endl;
     return 0;
 }

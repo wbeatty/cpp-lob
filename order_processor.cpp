@@ -1,6 +1,7 @@
 #include "market.hpp"
 #include <chrono>
 #include <charconv>
+#include <iostream>
 
 Market::Market() : orderQueue(4095) {
     buyTree = nullptr;
@@ -13,6 +14,7 @@ void Market::readOrders(std::istream& inputStream) {
     std::string line;
     uint32_t idNumber = 0;
 
+    std::cout << "Reading orders...\n";
     while (std::getline(inputStream, line)) {
         if (line[0] == '#') continue;
         
@@ -40,10 +42,12 @@ void Market::readOrders(std::istream& inputStream) {
         queueOrder(order);
     }
     inputDone.store(true, std::memory_order_release);
+    std::cout << "All orders read.\n";
 }
 
 void Market::queueOrder(Order *order) {
     if (!orderQueue.push(order)) {
         throw std::runtime_error("Order queue is full");
     }
+    std::cout << "Queued order " << order->idNumber << " with limit price " << order->limitPrice << " and shares " << order->shares << "\n";
 }

@@ -12,6 +12,8 @@ public:
     Market();
     void readOrders(std::istream& inputStream);
     void processOrders();
+    std::uint32_t getBestBid();
+    std::uint32_t getBestAsk();
 private:
     Limit *buyTree;
     Limit *sellTree;
@@ -28,8 +30,6 @@ private:
     void cancelOrder(Order& order);
     void executeOrder(Order& order);
     std::uint32_t getVolumeAtLimit(Limit& limit);
-    std::uint32_t getBestBid();
-    std::uint32_t getBestAsk();
     Limit *createLimit(std::uint32_t limitPrice, bool buyOrSell);
     Limit *findLimit(std::uint32_t limitPrice, bool buyOrSell);
     void addLimit(Limit *limit, bool buyOrSell);
