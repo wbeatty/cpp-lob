@@ -1,65 +1,5 @@
 #include "market.hpp"
-#include <chrono>
-#include <charconv>
 #include <thread>
-
-Market::Market() : orderQueue(4095) {
-    buyTree = nullptr;
-    sellTree = nullptr;
-    lowestSell = nullptr;
-    highestBuy = nullptr;
-}
-
-void Market::readOrders(std::istream& inputStream) {
-    std::string line;
-    uint32_t idNumber = 0;
-
-    while (std::getline(inputStream, line)) {
-        if (line[0] == '#') continue;
-        
-        const char *p = line.data();
-        const char *end = p + line.size();
-
-        Order *order = new Order();
-        order->buyOrSell = (p[0] == 'B');
-        p += 2;
-
-        auto [ptr1, ec1] = std::from_chars(p, end, order->limitPrice);
-
-        if (ec1 != std::errc()) {
-            throw std::runtime_error("Invalid limit price");
-        }
-        p = ptr1 + 1;
-
-        auto [ptr2, ec2] = std::from_chars(p, end, order->shares);
-        if (ec2 != std::errc()) {
-            throw std::runtime_error("Invalid shares");
-        }
-        order->idNumber = idNumber++;
-        order->entryTime = std::chrono::system_clock::now().time_since_epoch().count();
-
-        queueOrder(order);
-    }
-    inputDone.store(true, std::memory_order_release);
-}
-
-void Market::queueOrder(Order *order) {
-    if (!orderQueue.push(order)) {
-        throw std::runtime_error("Order queue is full");
-    }
-}
-
-void Market::addOrder(Order *order) {
-    // Check if limit already exists
-    Limit *limit = findLimit(order->limitPrice, order->buyOrSell);
-
-    orderMap[order->idNumber] = order;
-
-    // Create the limit if it doesn't exist
-    if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrSell);
-    
-    limit->addOrder(*order);
-}
 
 // Main matching engine loop
 void Market::processOrders() {
@@ -75,6 +15,18 @@ void Market::processOrders() {
             std::this_thread::yield();
         }
     }
+}
+
+void Market::addOrder(Order *order) {
+    // Check if limit already exists
+    Limit *limit = findLimit(order->limitPrice, order->buyOrSell);
+
+    orderMap[order->idNumber] = order;
+
+    // Create the limit if it doesn't exist
+    if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrSell);
+    
+    limit->addOrder(*order);
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist
@@ -133,6 +85,7 @@ void Market::addLimit(Limit *limit, bool buyOrSell) {
     return;
 }
 
+// Create a new limit node and add it to the tree
 Limit *Market::createLimit(std::uint32_t limitPrice, bool buyOrSell) {
     if (buyOrSell) {
         Limit *limit = new Limit();
@@ -148,4 +101,20 @@ Limit *Market::createLimit(std::uint32_t limitPrice, bool buyOrSell) {
         addLimit(limit, buyOrSell);
         return limit;
     }
+}
+
+// Add the order to the current limit node, update the size and total volume
+void Limit::addOrder(Order& order) {
+    if (headOrder == nullptr) {
+        headOrder = &order;
+        tailOrder = &order;
+    }
+    else {
+        tailOrder->nextOrder = &order;
+        order.prevOrder = tailOrder;
+        tailOrder = &order;
+    }
+    order.parentLimit = this;
+    size++;
+    totalVolume += order.shares;
 }

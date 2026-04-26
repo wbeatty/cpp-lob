@@ -6,8 +6,8 @@ template<typename T>
 
 class SPSCQueue {
 private:
-    std::vector<T> buffer;
     const size_t capacity;
+    std::vector<T> buffer;
 
     alignas(64)std::atomic<size_t> writeIndex{0};
     alignas(64)std::atomic<size_t> readIndex{0};

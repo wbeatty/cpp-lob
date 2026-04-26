@@ -4,7 +4,7 @@ LDFLAGS  :=
 
 TARGET          := cpp-lob
 PROFILE_TARGET  := cpp-lob-profile
-SOURCES         := main.cpp market.cpp limit.cpp
+SOURCES         := main.cpp order_processor.cpp matching_engine.cpp
 
 PROFILE_CXXFLAGS := -g -fno-omit-frame-pointer
 PROFILE_OBJDIR   := .build-profile
