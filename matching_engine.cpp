@@ -20,37 +20,26 @@ void Market::processOrders() {
 
 void Market::addOrder(Order *order) {
     // Check if limit already exists
-    std::cout << "Adding order " << order->idNumber << " with limit price " << order->limitPrice << " and shares " << order->shares << "\n";
-    Limit *limit = findLimit(order->limitPrice, order->buyOrSell);
+    Limit *limit = findLimit(order->limitPrice, order->buyOrder);
 
-    orderMap[order->idNumber] = order;
+    orderMap.push_back(order);
 
     // Create the limit if it doesn't exist
-    if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrSell);
+    if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrder);
     
     limit->addOrder(*order);
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist
-Limit *Market::findLimit(std::uint32_t limitPrice, bool buyOrSell) {
-    if (buyOrSell) {
-        if (buyLimitMap.find(limitPrice) == buyLimitMap.end()) {
-            return nullptr;
-        }
-        return buyLimitMap[limitPrice];
-    }
-    else {
-        if (sellLimitMap.find(limitPrice) == sellLimitMap.end()) {
-            return nullptr;
-        }
-        return sellLimitMap[limitPrice];
-    }
+Limit *Market::findLimit(const std::uint32_t limitPrice, const bool buyOrSell) {
+    const auto& map = buyOrSell ? buyLimitMap : sellLimitMap;
+    const auto it = map.find(limitPrice);
+    return it != map.end() ? it->second : nullptr;
 }
 
 // Add the limit to the tree, update the root and best bid/ask if necessary
-void Market::addLimit(Limit *limit, bool buyOrSell) {
-    Limit *&root = buyOrSell ? buyTree : sellTree;
-    if (root == nullptr) {
+void Market::addLimit(Limit *limit, const bool buyOrSell) {
+    if (Limit *&root = buyOrSell ? buyTree : sellTree; root == nullptr) {
         root = limit;
     }
     else {
@@ -84,25 +73,32 @@ void Market::addLimit(Limit *limit, bool buyOrSell) {
             lowestSell = limit;
         }
     }
-    return;
 }
 
 // Create a new limit node and add it to the tree
-Limit *Market::createLimit(std::uint32_t limitPrice, bool buyOrSell) {
+Limit *Market::createLimit(const std::uint32_t limitPrice, const bool buyOrSell) {
     if (buyOrSell) {
-        Limit *limit = new Limit();
+        auto *limit = new Limit();
         limit->limitPrice = limitPrice;
         buyLimitMap[limitPrice] = limit;
         addLimit(limit, buyOrSell);
         return limit;
     }
     else {
-        Limit *limit = new Limit();
+        auto *limit = new Limit();
         limit->limitPrice = limitPrice;
         sellLimitMap[limitPrice] = limit;
         addLimit(limit, buyOrSell);
         return limit;
     }
+}
+
+std::uint32_t Market::getBestBid() const {
+    return highestBuy->limitPrice;
+}
+
+std::uint32_t Market::getBestAsk() const{
+    return lowestSell->limitPrice;
 }
 
 // Add the order to the current limit node, update the size and total volume
@@ -119,12 +115,4 @@ void Limit::addOrder(Order& order) {
     order.parentLimit = this;
     size++;
     totalVolume += order.shares;
-}
-
-std::uint32_t Market::getBestBid() {
-    return highestBuy->limitPrice;
-}
-
-std::uint32_t Market::getBestAsk() {
-    return lowestSell->limitPrice;
 }
