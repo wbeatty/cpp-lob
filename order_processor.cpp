@@ -17,17 +17,20 @@ Market::Market()
     lowestSell = nullptr;
     highestBuy = nullptr;
     inputFile = nullptr;
+    bestBid = 0;
+    bestAsk = 0;
 }
 
 void Market::getOptions(int argc, char **argv) {
     int option_index = 0, option = 0;
     constexpr struct option options[] = {
         {"help", no_argument, nullptr, 'h'},
-        {"file", required_argument, nullptr, 'f'},
         {"random", no_argument, nullptr, 'r'},
+        {"verbose", no_argument, nullptr, 'v'},
+        {"file", required_argument, nullptr, 'f'},
     };
 
-    while ((option=getopt_long(argc, argv, "hf:r", options, &option_index)) != -1) {
+    while ((option=getopt_long(argc, argv, "hrvf:", options, &option_index)) != -1) {
         switch (option) {
             case 'h':
                 std::cout << "Usage: cpp-lob [-h] [-f filename] [-r]\n";
@@ -36,11 +39,14 @@ void Market::getOptions(int argc, char **argv) {
                 std::cout << "\t-f [filename]\tSpecify file name\n";
                 std::cout << "\t-r\tGenerate 1M random orders in selected file\n";
                 exit(0);
-            case 'f':
-                inputFile = optarg;
-                break;
             case 'r':
                 create_random_input(inputFile);
+                break;
+            case 'v':
+                verbose = true;
+                break;
+            case 'f':
+                inputFile = optarg;
                 break;
             default:
                 throw std::runtime_error("Unknown option");

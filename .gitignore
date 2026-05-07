@@ -4,3 +4,4 @@ cpp-lob
 cpp-lob-profile
 cpp-lob-profile.dSYM/
 .idea/
+*.txt
