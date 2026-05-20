@@ -17,6 +17,8 @@ Market::Market()
     lowestSell = nullptr;
     highestBuy = nullptr;
     inputFile = nullptr;
+    bestBid = 0;
+    bestAsk = 0;
 }
 
 void Market::getOptions(int argc, char **argv) {
@@ -25,28 +27,39 @@ void Market::getOptions(int argc, char **argv) {
         {"help", no_argument, nullptr, 'h'},
         {"file", required_argument, nullptr, 'f'},
         {"random", no_argument, nullptr, 'r'},
+        {"verbose", no_argument, nullptr, 'v'},
     };
 
-    while ((option=getopt_long(argc, argv, "hf:r", options, &option_index)) != -1) {
+    while ((option=getopt_long(argc, argv, "hf:rv", options, &option_index)) != -1) {
         switch (option) {
             case 'h':
-                std::cout << "Usage: cpp-lob [-h] [-f filename] [-r]\n";
+                std::cout << "Usage: cpp-lob [-h] [-f filename] [-r] [-v]\n";
                 std::cout << "Options:\n";
                 std::cout << "\t-h\tPrint this help message\n";
                 std::cout << "\t-f [filename]\tSpecify file name\n";
                 std::cout << "\t-r\tGenerate 1M random orders in selected file\n";
+                std::cout << "\t-v\tVerbose mode\n";
                 exit(0);
             case 'f':
                 inputFile = optarg;
                 break;
             case 'r':
+                if (inputFile == nullptr) {
+                    throw std::runtime_error("Option -r requires -f <filename>");
+                }
                 create_random_input(inputFile);
+                break;
+            case 'v':
+                verbose = true;
                 break;
             default:
                 throw std::runtime_error("Unknown option");
         }
     }
 
+    if (inputFile == nullptr) {
+        throw std::runtime_error("No input file specified (-f <filename>)");
+    }
 }
 
 Order *Market::createOrder() {
@@ -94,18 +107,20 @@ void Market::readOrders() {
             continue;
         }
 
-        auto *order = createOrder();
-        order->buyOrder = (*p == 'B');
+        const bool buyOrder = (*p == 'B');
         p += 2;
 
-        auto [ptr1, ec1] = std::from_chars(p, file_end, order->limitPrice);
+        std::uint32_t limitPrice = 0;
+        std::uint32_t shares = 0;
+
+        auto [ptr1, ec1] = std::from_chars(p, file_end, limitPrice);
         if (ec1 != std::errc()) {
             munmap(raw, sb.st_size);
             throw std::runtime_error("Invalid limit price");
         }
         p = ptr1 + 1;
 
-        auto [ptr2, ec2] = std::from_chars(p, file_end, order->shares);
+        auto [ptr2, ec2] = std::from_chars(p, file_end, shares);
         if (ec2 != std::errc()) {
             munmap(raw, sb.st_size);
             throw std::runtime_error("Invalid shares");
@@ -114,6 +129,14 @@ void Market::readOrders() {
 
         if (p < file_end && *p == '\n') p++;
 
+        if (shares == 0) {
+            continue;
+        }
+
+        auto *order = createOrder();
+        order->buyOrder = buyOrder;
+        order->limitPrice = limitPrice;
+        order->shares = shares;
         order->idNumber = idNumber++;
         order->entryTime = std::chrono::steady_clock::now().time_since_epoch().count();
 

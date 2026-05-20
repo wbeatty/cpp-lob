@@ -22,7 +22,5 @@ int main(int argc, char* argv[]) {
     const auto end = std::chrono::steady_clock::now();
     const double elapsed = std::chrono::duration<double>(end - start).count();
     cout << "Time taken: " << elapsed << " seconds (wall clock)\n";
-    cout << "Best bid: " << market.getBestBid() << endl;
-    cout << "Best ask: " << market.getBestAsk() << endl;
     return 0;
 }

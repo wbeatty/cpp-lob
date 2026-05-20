@@ -28,20 +28,34 @@ private:
     Limit *sellTree;
     Limit *lowestSell;
     Limit *highestBuy;
+
     std::vector<Order*> orderMap;
     std::unordered_map<std::uint32_t, Limit*> buyLimitMap; // limit price -> limit pointer
     std::unordered_map<std::uint32_t, Limit*> sellLimitMap; // limit price -> limit pointer
+
     SPSCQueue<Order*> orderQueue;
     std::atomic<bool> inputDone{false};
+
     char *inputFile;
+
+    alignas(64) uint32_t bestBid;
+    alignas(64) uint32_t bestAsk;
+
+    bool verbose = false;
 
     Order *createOrder();
     bool queueOrder(Order *order);
     void addOrder(Order *order);
-    void cancelOrder(Order& order);
-    void executeOrder(Order& order);
+    void matchOrders();
+    void executeLimit(Limit* buyLimit, Limit* sellLimit);
     std::uint32_t getVolumeAtLimit(Limit& limit);
-    Limit *createLimit(std::uint32_t limitPrice, bool buyOrSell);
-    Limit *findLimit(std::uint32_t limitPrice, bool buyOrSell);
-    void addLimit(Limit *limit, bool buyOrSell);
+    Limit *createLimit(std::uint32_t limitPrice, bool buyOrder);
+    Limit *findLimit(std::uint32_t limitPrice, bool buyOrder);
+    void addLimit(Limit *limit, bool buyOrder);
+    static Limit *inOrderPredecessor(Limit *limit);
+    static Limit *inOrderSuccessor(Limit *limit);
+    Limit *findBestBuy(Limit *limit);
+    Limit *findBestSell(Limit *limit);
+    void updateBest(Limit* limit, bool buyOrder);
+    void executeOrder(Order* order, std::uint32_t shares, std::uint32_t tradePrice);
 };
