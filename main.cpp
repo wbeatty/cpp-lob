@@ -15,12 +15,15 @@ int main(int argc, char* argv[]) {
 
     std::thread readOrdersThread([&market]() { market.readOrders(); });
     std::thread processOrdersThread([&market]() { market.processOrders(); });
+    std::thread processTradesThread([&market] {market.processOutput(); });
 
     readOrdersThread.join();
     processOrdersThread.join();
+    processTradesThread.join();
 
     const auto end = std::chrono::steady_clock::now();
     const double elapsed = std::chrono::duration<double>(end - start).count();
     cout << "Time taken: " << elapsed << " seconds (wall clock)\n";
+
     return 0;
 }

@@ -3,17 +3,16 @@
 #include <string>
 using namespace std;
 
-constexpr long MAXNUM = 1000000;
-
+constexpr long MAXNUM = 10000000;
 
 void create_random_input(string filename) {
     ofstream out;
     out.open(filename);
 
-    for (int i = 0; i < MAXNUM; i++) {
+    for (long i = 0; i < MAXNUM; i++) {
         int buyOrSell = rand() % 2;
-        int limitPrice = rand() % 1000000;
-        int shares = 1 + rand() % 999999;
+        int limitPrice = rand() % 1000;
+        int shares = 1 + rand() % 100;
         out << (buyOrSell == 0 ? "B" : "S") << " " << limitPrice << " " << shares << "\n";
     }
 

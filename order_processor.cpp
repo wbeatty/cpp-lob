@@ -11,7 +11,7 @@
 
 Market::Market()
     : orderPoolBuffer(std::make_unique<std::byte[]>(ORDER_POOL_BYTES)),
-    orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), orderQueue(4095) {
+    orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), orderQueue(4095), tradeQueue(4095) {
     buyTree = nullptr;
     sellTree = nullptr;
     lowestSell = nullptr;
@@ -27,10 +27,10 @@ void Market::getOptions(int argc, char **argv) {
         {"help", no_argument, nullptr, 'h'},
         {"file", required_argument, nullptr, 'f'},
         {"random", no_argument, nullptr, 'r'},
-        {"verbose", no_argument, nullptr, 'v'},
+        {"output", no_argument, nullptr, 'o'},
     };
 
-    while ((option=getopt_long(argc, argv, "hf:rv", options, &option_index)) != -1) {
+    while ((option=getopt_long(argc, argv, "hf:ro", options, &option_index)) != -1) {
         switch (option) {
             case 'h':
                 std::cout << "Usage: cpp-lob [-h] [-f filename] [-r] [-v]\n";
@@ -49,8 +49,8 @@ void Market::getOptions(int argc, char **argv) {
                 }
                 create_random_input(inputFile);
                 break;
-            case 'v':
-                verbose = true;
+            case 'o':
+                output = true;
                 break;
             default:
                 throw std::runtime_error("Unknown option");

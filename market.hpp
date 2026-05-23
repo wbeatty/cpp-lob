@@ -1,8 +1,6 @@
 #pragma once
 #include <atomic>
 #include <cstddef>
-#include <cstdint>
-#include <istream>
 #include <memory>
 #include <memory_resource>
 #include <unordered_map>
@@ -10,6 +8,7 @@
 #include "order.hpp"
 #include "limit.hpp"
 #include "queue.hpp"
+#include "trade.hpp"
 
 class Market {
 public:
@@ -17,6 +16,7 @@ public:
     void getOptions(int argc, char** argv);
     void readOrders();
     void processOrders();
+    void processOutput();
     std::uint32_t getBestBid() const;
     std::uint32_t getBestAsk() const;
 private:
@@ -36,26 +36,31 @@ private:
     SPSCQueue<Order*> orderQueue;
     std::atomic<bool> inputDone{false};
 
+    SPSCQueue<Trade> tradeQueue;
+    std::atomic<bool> processingDone{false};
+
     char *inputFile;
 
     alignas(64) uint32_t bestBid;
     alignas(64) uint32_t bestAsk;
+    alignas(64) uint32_t tradeCount = 0;
 
-    bool verbose = false;
+    bool output = false;
 
     Order *createOrder();
     bool queueOrder(Order *order);
     void addOrder(Order *order);
     void matchOrders();
     void executeLimit(Limit* buyLimit, Limit* sellLimit);
-    std::uint32_t getVolumeAtLimit(Limit& limit);
     Limit *createLimit(std::uint32_t limitPrice, bool buyOrder);
-    Limit *findLimit(std::uint32_t limitPrice, bool buyOrder);
+    Limit *findLimit(std::uint32_t limitPrice, bool buyOrder) const;
     void addLimit(Limit *limit, bool buyOrder);
+    static std::uint32_t getVolumeAtLimit(const Limit& limit);
     static Limit *inOrderPredecessor(Limit *limit);
     static Limit *inOrderSuccessor(Limit *limit);
-    Limit *findBestBuy(Limit *limit);
-    Limit *findBestSell(Limit *limit);
+    static Limit *findBestBuy(Limit *limit);
+    static Limit *findBestSell(Limit *limit);
     void updateBest(Limit* limit, bool buyOrder);
-    void executeOrder(Order* order, std::uint32_t shares, std::uint32_t tradePrice);
+    void executeOrder(Order* order, std::uint32_t shares) const;
+    void processTrade(const Trade *trade);
 };

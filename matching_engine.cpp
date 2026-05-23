@@ -1,4 +1,5 @@
 #include "market.hpp"
+#include "trade.hpp"
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -13,6 +14,7 @@ void Market::processOrders() {
         } else if (inputDone.load(std::memory_order_acquire)) {
             // read in any orders pushed after the flag was set
             while (orderQueue.pop(order)) addOrder(order);
+            processingDone.store(true, std::memory_order_release);
             break;
         } else {
             std::this_thread::yield();
@@ -36,7 +38,7 @@ void Market::addOrder(Order *order) {
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist
-Limit *Market::findLimit(const std::uint32_t limitPrice, const bool buyOrder) {
+Limit *Market::findLimit(const std::uint32_t limitPrice, const bool buyOrder) const {
     const auto& map = buyOrder ? buyLimitMap : sellLimitMap;
     const auto it = map.find(limitPrice);
     return it != map.end() ? it->second : nullptr;
@@ -117,7 +119,7 @@ std::uint32_t Market::getBestAsk() const{
     return lowestSell->limitPrice;
 }
 
-std::uint32_t Market::getVolumeAtLimit(Limit& limit) {
+std::uint32_t Market::getVolumeAtLimit(const Limit& limit) {
     return limit.totalVolume;
 }
 
@@ -176,8 +178,15 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
             ? currentSell->limitPrice
             : currentBuy->limitPrice;
 
-        executeOrder(currentBuy, tradedShares, tradePrice);
-        executeOrder(currentSell, tradedShares, tradePrice);
+        executeOrder(currentBuy, tradedShares);
+        executeOrder(currentSell, tradedShares);
+
+        uint64_t executionTime = std::chrono::steady_clock::now().time_since_epoch().count();
+
+        Trade trade{tradeCount++, tradePrice, tradedShares, executionTime,currentBuy->idNumber, currentSell->idNumber};
+        if (!tradeQueue.push(trade)) {
+            std::cerr << "Trade queue full. Dropping trade.\n";
+        }
 
         buyVolume -= tradedShares;
         sellVolume -= tradedShares;
@@ -197,20 +206,17 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
     if (sellVolume == 0) {
        Limit* nextSell = findBestSell(sellLimit);
        if (nextSell == nullptr) {
-            bestAsk = 0;
-            lowestSell = nullptr;
-        }
-        else {
+           bestAsk = 0;
+           lowestSell = nullptr;
+       }
+       else {
             bestAsk = nextSell->limitPrice;
             lowestSell = nextSell;
-        }
+       }
     }
 }
 
-void Market::executeOrder(Order *order, std::uint32_t shares, std::uint32_t tradePrice) {
-    if (verbose) {
-        std::cout << "Executing order " << order->idNumber << " at " << tradePrice << " for " << shares << " shares.\n";
-    }
+void Market::executeOrder(Order *order, std::uint32_t shares) const {
     order->eventTime = std::chrono::steady_clock::now().time_since_epoch().count();
     order->parentLimit->totalVolume -= shares;
     order->shares -= shares;
