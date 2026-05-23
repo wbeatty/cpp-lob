@@ -2,8 +2,6 @@
 
 A high-performance **limit order book (LOB)** simulator written in modern C++17. Orders are ingested from disk, matched with **price–time priority**, and trades can be streamed to a dedicated output thread—all on a **three-stage concurrent pipeline** designed for throughput on large workloads.
 
----
-
 ## Quick Start
 
 ### Requirements
@@ -58,8 +56,6 @@ One order per line (lines starting with `#` are comments):
 - `ORDER_TYPE`: `B` (buy) or `S` (sell)
 - `LIMIT_PRICE`, `QUANTITY`: unsigned integers
 
----
-
 ## Project layout
 
 ```
@@ -77,8 +73,6 @@ cpp-lob/
 │   └── test3.txt     # 10M orders (~84 MB)
 └── Makefile
 ```
-
----
 
 ## Architecture
 
@@ -130,42 +124,13 @@ Assumptions:
 - Order shares are greater than 0
 - Limit prices are greater than 0
 
----
-
 ## Design Decisions
-
-```mermaid
-flowchart LR
-  subgraph ingest["Thread 1: readOrders"]
-    A["mmap input file"]
-    B["parse with from_chars"]
-    C["allocate Order from PMR pool"]
-    D["orderQueue.push"]
-  end
-  subgraph match["Thread 2: processOrders"]
-    E["orderQueue.pop"]
-    F["insert into LOB"]
-    G["matchOrders / executeLimit"]
-    H["tradeQueue.push"]
-  end
-  subgraph out["Thread 3: processOutput"]
-    I["tradeQueue.pop"]
-    J["processTrade (optional -o)"]
-  end
-  A --> B --> C --> D
-  D --> E --> F --> G --> H
-  H --> I --> J
-```
-
-
 
 Throughput comes from overlapping work across three threads (read, match, optional trade logging) connected by custom, bounded **single-producer, single-consumer** ring buffers with cache-line–aligned indices and acquire/release atomics.
 
 Since the current implementation reads orders from an input file, processing is sped up through input file mapping with `mmap`, allowing orders to be parsed with `std::from_chars` directly from memory. This eliminates the need for costly iostreams on the hotpath.
 
 To increase throughput, `Order` objects are allocated from a 64 MiB **PMR monotonic buffer** via placement `new`, avoiding per-order heap traffic.
-
----
 
 ## References
 
