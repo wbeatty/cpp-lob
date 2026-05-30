@@ -4,7 +4,6 @@
 #include <memory>
 #include <memory_resource>
 #include <unordered_map>
-#include <vector>
 #include "order.hpp"
 #include "limit.hpp"
 #include "queue.hpp"
@@ -19,6 +18,8 @@ public:
     void processOutput();
     std::uint32_t getBestBid() const;
     std::uint32_t getBestAsk() const;
+
+    void outputData();
 private:
     static constexpr std::size_t ORDER_POOL_BYTES = 64 * 1024 * 1024;
     std::unique_ptr<std::byte[]> orderPoolBuffer;
@@ -29,7 +30,7 @@ private:
     Limit *lowestSell;
     Limit *highestBuy;
 
-    std::vector<Order*> orderMap;
+    std::unordered_map<std::uint32_t, Order*> orderMap; // idNumber -> order pointer
     std::unordered_map<std::uint32_t, Limit*> buyLimitMap; // limit price -> limit pointer
     std::unordered_map<std::uint32_t, Limit*> sellLimitMap; // limit price -> limit pointer
 
@@ -63,4 +64,6 @@ private:
     void updateBest(Limit* limit, bool buyOrder);
     void executeOrder(Order* order, std::uint32_t shares) const;
     void processTrade(const Trade *trade);
+
+    void cancelOrder(std::uint32_t idNumber);
 };

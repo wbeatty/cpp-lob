@@ -9,6 +9,9 @@ struct Order {
 
     std::uint64_t entryTime = 0;
     std::uint64_t eventTime = 0;
+    std::uint64_t dequeueTime = 0;
+    std::uint64_t addCompletedTime = 0;
+
     Order *nextOrder = nullptr;
     Order *prevOrder = nullptr;
     Limit *parentLimit = nullptr;

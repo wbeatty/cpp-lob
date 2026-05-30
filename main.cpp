@@ -25,5 +25,7 @@ int main(int argc, char* argv[]) {
     const double elapsed = std::chrono::duration<double>(end - start).count();
     cout << "Time taken: " << elapsed << " seconds (wall clock)\n";
 
+    market.outputData();
+
     return 0;
 }

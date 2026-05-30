@@ -6,3 +6,6 @@ cpp-lob-profile.dSYM/
 .idea/
 .clangd
 .vscode/
+output.txt
+.venv/
+data.ipynb

@@ -10,10 +10,14 @@ void Market::processOrders() {
     Order *order;
     while (true) {
         if (orderQueue.pop(order)) {
+            order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
             addOrder(order);
         } else if (inputDone.load(std::memory_order_acquire)) {
             // read in any orders pushed after the flag was set
-            while (orderQueue.pop(order)) addOrder(order);
+            while (orderQueue.pop(order)) {
+                order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                addOrder(order);
+            }
             processingDone.store(true, std::memory_order_release);
             break;
         } else {
@@ -26,7 +30,7 @@ void Market::addOrder(Order *order) {
     // Check if limit already exists
     Limit *limit = findLimit(order->limitPrice, order->buyOrder);
 
-    orderMap.push_back(order);
+    orderMap[order->idNumber] = order;
 
     // Create the limit if it doesn't exist
     if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrder);
@@ -35,6 +39,7 @@ void Market::addOrder(Order *order) {
 
     updateBest(limit, order->buyOrder);
     matchOrders();
+    order->addCompletedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist
@@ -181,11 +186,15 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
         executeOrder(currentBuy, tradedShares);
         executeOrder(currentSell, tradedShares);
 
-        uint64_t executionTime = std::chrono::steady_clock::now().time_since_epoch().count();
+        const std::uint64_t executionTime = std::chrono::steady_clock::now().time_since_epoch().count();
 
-        Trade trade{tradeCount++, tradePrice, tradedShares, executionTime,currentBuy->idNumber, currentSell->idNumber};
-        if (!tradeQueue.push(trade)) {
-            std::cerr << "Trade queue full. Dropping trade.\n";
+        const std::uint64_t takerEntryTime = sellIsMaker ? currentBuy->entryTime : currentSell->entryTime;
+
+        Trade trade{tradeCount++, tradePrice, tradedShares, executionTime, takerEntryTime, currentBuy->idNumber, currentSell->idNumber};
+        if (output) {
+            if (!tradeQueue.push(trade)) {
+                std::cerr << "Trade queue full. Dropping trade.\n";
+            }
         }
 
         buyVolume -= tradedShares;
@@ -217,7 +226,7 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
 }
 
 void Market::executeOrder(Order *order, std::uint32_t shares) const {
-    order->eventTime = std::chrono::steady_clock::now().time_since_epoch().count();
+    order->eventTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     order->parentLimit->totalVolume -= shares;
     order->shares -= shares;
     if (order->shares == 0) {
@@ -315,4 +324,14 @@ Limit *Market::findBestSell(Limit *limit) {
         curr = inOrderSuccessor(curr);
     }
     return curr;
+}
+
+void Market::cancelOrder(std::uint32_t idNumber) {
+    Order *order = orderMap[idNumber];
+    if (order == nullptr) {
+        return;
+    }
+    order->parentLimit->removeOrder(order);
+    updateBest(order->parentLimit, order->buyOrder);
+    orderMap.erase(idNumber);
 }

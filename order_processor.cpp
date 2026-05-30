@@ -37,7 +37,7 @@ void Market::getOptions(int argc, char **argv) {
                 std::cout << "Options:\n";
                 std::cout << "\t-h\tPrint this help message\n";
                 std::cout << "\t-f [filename]\tSpecify file name\n";
-                std::cout << "\t-r\tGenerate 1M random orders in selected file\n";
+                std::cout << "\t-r\tGenerate ~5M trading + 10k seed orders in selected file\n";
                 std::cout << "\t-v\tVerbose mode\n";
                 exit(0);
             case 'f':
@@ -138,7 +138,7 @@ void Market::readOrders() {
         order->limitPrice = limitPrice;
         order->shares = shares;
         order->idNumber = idNumber++;
-        order->entryTime = std::chrono::steady_clock::now().time_since_epoch().count();
+        order->entryTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
         while (!queueOrder(order)) {}
     }
