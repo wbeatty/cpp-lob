@@ -139,6 +139,30 @@ Running with `-r` writes a two-phase order stream seeded by a fixed PRNG (`std::
 1. **Seed book (10,000 orders).** Resting liquidity around `MID = 10000`. Buys populate prices `MID - 1 .. MID - 50`, sells `MID + 1 .. MID + 50`, leaving a one-tick spread at the mid.
 2. **Trading flow (5,000,000 orders).** A simulated reference price random-walks around `MID` (clamped to `MID ± 500`). Each order is ~50/50 buy/sell with ~30% aggressive (crossing the touch) and ~70% passive (resting near the touch), so `bestBid` / `bestAsk` and trade prices drift naturally as the file replays.
 
+## Testing and Performance
+
+For testing, I used the random data generator specificed above to create 5,010,000 requests. The initial 10,000 orders were used to seed the order book to replicate a realistic exchange. 
+
+In testing, I recorded four different metrics:
+- Queue Wait: order entry → matcher dequeue (time spent in SPSC queue)
+- Matcher Processing: matcher dequeue → order-book update complete
+- End-to-End: order entry → order-book update complete (= queue wait + matcher processing)
+- Tick-to-Trade: taker entry time → trade execution (per trade)
+
+These measurements were all recorded on my MacBook Air with an M3 chip. Times were stamped using macOS `steady_clock` which ticks at 24 MHz, or around 41.67ns/tick. Data such as queue-wait shows p50 values of 41ns or exactly one tick. These values should be primarily ignored as the per-order latencies are in actuality at or below the clock's granularity. More important observations can be made by looking at the tail percentiles instead.
+
+### Latency Distributions
+
+![Latency Distributions Graph](./img/graph.png)
+
+As seen in the distributions, queue wait is the dominating factor in terms of total end-to-end latency. Matcher processing tops out at around 630ns (p99) with a mean of 97ns. Meanwhile, queue wait runs out to 1.1 ms in the clipped view with a mean of ~486 µs. The matching engine itself is essentially free, while almost all latency an order experiences is spent waiting in the SPSC queue, before it ever gets to the matcher. 
+
+From this conclusion, it follows that the end-to-end distribution almost perfectly matches queue wait. Since end-to-end is measured as `queue_wait + matcher_processing` and matcher processing is ~97ns, queue wait time dominates the recorded values. 
+
+Tick-to-trade follows a similar story as end-to-end. It includes the taker time stuck in the queue, which gives it a similar bimodial shape to queue-wait. The mean value of 514µs, a bit higher than end-to-end's mean of ~486µs, can be explained by the fact that these taker orders which cross the spread come at busier and more backlogged periods.
+
+From this data we can conclude that the real bottleneck is consumer throughput vs input rate. 
+
 ## References
 
 [How to Build a Fast Limit Order Book - wkselph](https://web.archive.org/web/20110219163448/http://howtohft.wordpress.com/2011/02/15/how-to-build-a-fast-limit-order-book/)

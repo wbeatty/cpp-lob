@@ -18,6 +18,7 @@ public:
     void processOutput();
     std::uint32_t getBestBid() const;
     std::uint32_t getBestAsk() const;
+    std::uint32_t getOrderCount() const;
 
     void outputData();
 private:
@@ -41,6 +42,7 @@ private:
     std::atomic<bool> processingDone{false};
 
     char *inputFile;
+    std::vector<Trade> tradeLog; // trades that were executed
 
     alignas(64) uint32_t bestBid;
     alignas(64) uint32_t bestAsk;
@@ -63,7 +65,6 @@ private:
     static Limit *findBestSell(Limit *limit);
     void updateBest(Limit* limit, bool buyOrder);
     void executeOrder(Order* order, std::uint32_t shares) const;
-    void processTrade(const Trade *trade);
-
+    void processTrade(Trade *trade);
     void cancelOrder(std::uint32_t idNumber);
 };

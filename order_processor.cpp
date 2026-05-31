@@ -153,3 +153,7 @@ bool Market::queueOrder(Order *order) {
     }
     return true;
 }
+
+std::uint32_t Market::getOrderCount() const {
+    return orderMap.size();
+}
