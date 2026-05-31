@@ -1,10 +1,10 @@
 CXX      := g++
-CXXFLAGS := -std=c++17 -Wall -Wextra -O2
+CXXFLAGS := -std=c++17 -Wall -Wextra -O2 -Iinclude
 LDFLAGS  :=
 
 TARGET          := cpp-lob
 PROFILE_TARGET  := cpp-lob-profile
-SOURCES         := main.cpp order_processor.cpp matching_engine.cpp output_engine.cpp
+SOURCES         := src/main.cpp src/order_processor.cpp src/matching_engine.cpp src/output_engine.cpp
 
 PROFILE_CXXFLAGS := -g -fno-omit-frame-pointer
 PROFILE_OBJDIR   := .build-profile
@@ -17,10 +17,8 @@ all: $(TARGET)
 $(TARGET): $(SOURCES)
 	$(CXX) $(CXXFLAGS) -o $@ $(SOURCES) $(LDFLAGS)
 
-$(PROFILE_OBJDIR):
-	mkdir -p $(PROFILE_OBJDIR)
-
-$(PROFILE_OBJDIR)/%.o: %.cpp | $(PROFILE_OBJDIR)
+$(PROFILE_OBJDIR)/%.o: %.cpp
+	mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(PROFILE_CXXFLAGS) -c $< -o $@
 
 profile: $(PROFILE_TARGET)
@@ -34,7 +32,7 @@ clean:
 	rm -f $(TARGET) $(PROFILE_TARGET)
 
 run: $(TARGET)
-	./$(TARGET) < sample_input.txt
+	./$(TARGET) -f data/test1.txt
 
 run-profile: $(PROFILE_TARGET)
-	./$(PROFILE_TARGET) < sample_input.txt
+	./$(PROFILE_TARGET) -f data/test1.txt

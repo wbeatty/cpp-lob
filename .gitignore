@@ -8,5 +8,5 @@ cpp-lob-profile.dSYM/
 .vscode/
 output.txt
 .venv/
-data.ipynb
+analysis/data.ipynb
 output/
