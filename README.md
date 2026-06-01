@@ -119,12 +119,12 @@ An input file is **required** (`-f`). Orders are read from the file; matching ru
 ### CLI
 
 
-| Flag                  | Description                                       |
-| --------------------- | ------------------------------------------------- |
-| `-h`, `--help`        | Usage summary                                     |
-| `-f <path>`, `--file` | **Required.** Path to order input file            |
+| Flag                  | Description                                                                  |
+|-----------------------|------------------------------------------------------------------------------|
+| `-h`, `--help`        | Usage summary                                                                |
+| `-f <path>`, `--file` | **Required.** Path to order input file                                       |
 | `-r`, `--random`      | Write realistic order flow (10k seed + 5M trading) to the file given by `-f` |
-| `-o`, `--output`      | Enable trade logging on the output thread         |
+| `-o`, `--output`      | Enable trade logging on the output thread                                    |
 
 
 ### Input Format
@@ -147,7 +147,7 @@ Running with `-r` writes a two-phase order stream seeded by a fixed PRNG (`std::
 
 ## Testing and Performance
 
-For testing, I used the random data generator specificed above to create 5,010,000 requests. The initial 10,000 orders were used to seed the order book to replicate a realistic exchange. 
+For testing, I used the random data generator specified above to create 5,010,000 requests. The initial 10,000 orders were used to seed the order book to replicate a realistic exchange. 
 
 In testing, I recorded four different metrics:
 - Queue Wait: order entry → matcher dequeue (time spent in SPSC queue)
@@ -161,13 +161,13 @@ These measurements were all recorded on my MacBook Air with an M3 chip. Times we
 
 ![Latency Distributions Graph](./docs/img/graph.png)
 
-As seen in the distributions, queue wait is the dominating factor in terms of total end-to-end latency. Matcher processing tops out at around 630ns (p99) with a mean of 97ns. Meanwhile, queue wait runs out to 1.1 ms in the clipped view with a mean of ~486 µs. The matching engine itself is essentially free, while almost all latency an order experiences is spent waiting in the SPSC queue, before it ever gets to the matcher. 
+As seen in the distributions, queue wait is the dominating factor in terms of total end-to-end latency. Matcher processing tops out at around 630ns (p99) with a mean of 97ns. Meanwhile, queue wait runs out to 1.1 ms in the clipped view with a mean of ~486 µs. The matching engine itself is essentially free, while almost all latency an order experiences is spent waiting in the SPSC queue before it ever gets to the matcher. 
 
 From this conclusion, it follows that the end-to-end distribution almost perfectly matches queue wait. Since end-to-end is measured as `queue_wait + matcher_processing` and matcher processing is ~97ns, queue wait time dominates the recorded values. 
 
-Tick-to-trade follows a similar story as end-to-end. It includes the taker time stuck in the queue, which gives it a similar bimodial shape to queue-wait. The mean value of 514µs, a bit higher than end-to-end's mean of ~486µs, can be explained by the fact that these taker orders which cross the spread come at busier and more backlogged periods.
+Tick-to-trade follows a similar story as end-to-end. It includes the taker time stuck in the queue, which gives it a similar bimodal shape to queue-wait. The mean value of 514µs, a bit higher than end-to-end's mean of ~486µs, can be explained by the fact that these taker orders which cross the spread come at busier and more backlogged periods.
 
-From this data we can conclude that the real bottleneck is consumer throughput vs input rate. 
+From this data we can conclude that the real bottleneck is consumer throughput vs. input rate. 
 
 ## References
 

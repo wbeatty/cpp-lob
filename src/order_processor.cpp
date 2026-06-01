@@ -8,7 +8,6 @@
 #include <sys/mman.h>
 #include "random.cpp"
 
-
 Market::Market()
     : orderPoolBuffer(std::make_unique<std::byte[]>(ORDER_POOL_BYTES)),
     orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), orderQueue(4095), tradeQueue(4095) {
@@ -19,6 +18,7 @@ Market::Market()
     inputFile = nullptr;
     bestBid = 0;
     bestAsk = 0;
+    orderVector.reserve(6000000);
 }
 
 void Market::getOptions(int argc, char **argv) {
@@ -151,9 +151,10 @@ bool Market::queueOrder(Order *order) {
     if (!orderQueue.push(order)) {
         return false;
     }
+    order->queuedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     return true;
 }
 
 std::uint32_t Market::getOrderCount() const {
-    return orderMap.size();
+    return orderVector.size();
 }

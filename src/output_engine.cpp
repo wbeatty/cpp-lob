@@ -36,7 +36,7 @@ void Market::outputData() {
         std::cerr << "Failed to open queue wait times file\n";
         return;
     }
-    for (const auto &[idNumber, order] : orderMap) {
+    for (const auto &order : orderVector) {
         uint64_t queueWaitTime = order->dequeueTime - order->entryTime;
         queueWaitTimes << queueWaitTime << "\n";
     }
@@ -47,18 +47,19 @@ void Market::outputData() {
         std::cerr << "Failed to open matcher processing times file\n";
         return;
     }
-    for (const auto &[idNumber, order] : orderMap) {
+    for (const auto &order : orderVector) {
         uint64_t matcherProcessingTime = order->addCompletedTime - order->dequeueTime;
         matcherProcessingTimes << matcherProcessingTime << "\n";
     }
     matcherProcessingTimes.close();
+    
 
     std::ofstream endToEndTimes("output/end_to_end_times.txt");
     if (!endToEndTimes.is_open()) {
         std::cerr << "Failed to open end to end times file\n";
         return;
     }
-    for (const auto &[idNumber, order] : orderMap) {
+    for (const auto &order : orderVector) {
         uint64_t endToEndTime = order->addCompletedTime - order->entryTime;
         endToEndTimes << endToEndTime << "\n";
     }
@@ -74,4 +75,32 @@ void Market::outputData() {
         tickToTradeTimes << tickToTradeTime << "\n";
     }
     tickToTradeTimes.close();
+
+    std::ofstream toQueueTimes("output/to_queue_times.txt");
+    if (!toQueueTimes.is_open()) {
+        std::cerr << "Failed to open to queue times file\n";
+        return;
+    }
+    uint64_t sum = 0;
+    uint64_t count = 0;
+    for (const auto &order : orderVector) {
+        sum += order->queuedTime - order->entryTime;
+        if (count == 1000) {
+            toQueueTimes << sum / count << "\n";
+            sum = 0;
+            count = 0;
+        }
+        count++;
+    }
+    toQueueTimes.close();
+
+    std::ofstream lastPrice("./output/last_price.txt");
+    if (!lastPrice.is_open()) {
+        std::cerr << "Failed to open last price file\n";
+        return;
+    }
+    for (const auto &trade : tradeLog) {
+        lastPrice << trade.price << "\n";
+    }
+    lastPrice.close();
 }

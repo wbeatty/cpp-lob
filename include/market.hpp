@@ -4,6 +4,7 @@
 #include <memory>
 #include <memory_resource>
 #include <unordered_map>
+#include <vector>
 #include "order.hpp"
 #include "limit.hpp"
 #include "queue.hpp"
@@ -31,7 +32,7 @@ private:
     Limit *lowestSell;
     Limit *highestBuy;
 
-    std::unordered_map<std::uint32_t, Order*> orderMap; // idNumber -> order pointer
+    std::vector<Order*> orderVector; // vector of order pointers
     std::unordered_map<std::uint32_t, Limit*> buyLimitMap; // limit price -> limit pointer
     std::unordered_map<std::uint32_t, Limit*> sellLimitMap; // limit price -> limit pointer
 

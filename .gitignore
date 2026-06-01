@@ -10,3 +10,4 @@ output.txt
 .venv/
 analysis/data.ipynb
 output/
+compile_commands.json

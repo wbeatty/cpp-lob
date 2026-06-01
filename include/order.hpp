@@ -8,6 +8,7 @@ struct Order {
     Order(std::uint64_t entryTime, std::uint64_t eventTime, Order *nextOrder, Order *prevOrder, Limit *parentLimit, std::uint32_t idNumber, std::uint32_t shares, std::uint32_t limitPrice, bool buyOrSell) : entryTime(entryTime), eventTime(eventTime), nextOrder(nextOrder), prevOrder(prevOrder), parentLimit(parentLimit), idNumber(idNumber), shares(shares), limitPrice(limitPrice), buyOrder(buyOrSell) {}
 
     std::uint64_t entryTime = 0;
+    std::uint64_t queuedTime = 0;
     std::uint64_t eventTime = 0;
     std::uint64_t dequeueTime = 0;
     std::uint64_t addCompletedTime = 0;

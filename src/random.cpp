@@ -7,7 +7,7 @@
 #include <string>
 using namespace std;
 
-constexpr uint32_t MID_PRICE = 10000;
+constexpr uint32_t MID_PRICE = 100;
 constexpr int SEED_ORDERS = 10000;
 constexpr int SEED_DEPTH = 50;
 constexpr long TRADING_ORDERS = 5'000'000;

@@ -4,9 +4,11 @@
 #include <chrono>
 #include <iostream>
 #include <thread>
+#include <pthread.h>
 
 // Main matching engine loop
 void Market::processOrders() {
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
     Order *order;
     while (true) {
         if (orderQueue.pop(order)) {
@@ -30,7 +32,7 @@ void Market::addOrder(Order *order) {
     // Check if limit already exists
     Limit *limit = findLimit(order->limitPrice, order->buyOrder);
 
-    orderMap[order->idNumber] = order;
+    orderVector.push_back(order);
 
     // Create the limit if it doesn't exist
     if (limit == nullptr) limit = createLimit(order->limitPrice, order->buyOrder);
@@ -327,11 +329,11 @@ Limit *Market::findBestSell(Limit *limit) {
 }
 
 void Market::cancelOrder(std::uint32_t idNumber) {
-    Order *order = orderMap[idNumber];
+    Order *order = orderVector[idNumber];
     if (order == nullptr) {
         return;
     }
     order->parentLimit->removeOrder(order);
     updateBest(order->parentLimit, order->buyOrder);
-    orderMap.erase(idNumber);
+    orderVector.erase(orderVector.begin() + idNumber);
 }
