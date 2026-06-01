@@ -8,10 +8,20 @@ using namespace std;
 int main(int argc, char* argv[]) {
     std::ios_base::sync_with_stdio(false);
 
-    const auto start = std::chrono::steady_clock::now();
-
     Market market;
     market.getOptions(argc, argv);
+
+    if (market.getDebug()) {
+        cout << "Debug Mode Enabled" << endl;
+        cout << "Which data would you like to output? (t)elementry, (o)rder book, (l)og, (a)ll, (q)uit" << endl;
+        char choice;
+        cin >> choice;
+        if (!market.setOutputs(choice)) {
+            return 0;
+        }
+    }
+
+    const auto start = std::chrono::steady_clock::now();
 
     std::thread readOrdersThread([&market]() { market.readOrders(); });
     std::thread processOrdersThread([&market]() { market.processOrders(); });

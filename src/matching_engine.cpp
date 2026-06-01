@@ -193,7 +193,7 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
         const std::uint64_t takerEntryTime = sellIsMaker ? currentBuy->entryTime : currentSell->entryTime;
 
         Trade trade{tradeCount++, tradePrice, tradedShares, executionTime, takerEntryTime, currentBuy->idNumber, currentSell->idNumber};
-        if (output) {
+        if (debug) {
             if (!tradeQueue.push(trade)) {
                 std::cerr << "Trade queue full. Dropping trade.\n";
             }

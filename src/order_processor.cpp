@@ -30,15 +30,15 @@ void Market::getOptions(int argc, char **argv) {
         {"output", no_argument, nullptr, 'o'},
     };
 
-    while ((option=getopt_long(argc, argv, "hf:ro", options, &option_index)) != -1) {
+    while ((option=getopt_long(argc, argv, "hf:rd", options, &option_index)) != -1) {
         switch (option) {
             case 'h':
-                std::cout << "Usage: cpp-lob [-h] [-f filename] [-r] [-v]\n";
+                std::cout << "Usage: cpp-lob [-h] [-f filename] [-r] [-d]\n";
                 std::cout << "Options:\n";
                 std::cout << "\t-h\tPrint this help message\n";
                 std::cout << "\t-f [filename]\tSpecify file name\n";
                 std::cout << "\t-r\tGenerate ~5M trading + 10k seed orders in selected file\n";
-                std::cout << "\t-v\tVerbose mode\n";
+                std::cout << "\t-d\tDebug mode\n";
                 exit(0);
             case 'f':
                 inputFile = optarg;
@@ -49,8 +49,8 @@ void Market::getOptions(int argc, char **argv) {
                 }
                 create_random_input(inputFile);
                 break;
-            case 'o':
-                output = true;
+            case 'd':
+                debug = true;
                 break;
             default:
                 throw std::runtime_error("Unknown option");
@@ -157,4 +157,26 @@ bool Market::queueOrder(Order *order) {
 
 std::uint32_t Market::getOrderCount() const {
     return orderVector.size();
+}
+
+bool Market::setOutputs(char choice) {
+    switch (choice) {
+        case 't':
+            outputTelemetry = true;
+            return true;
+        case 'o':
+            outputOrderBook = true;
+            return true;
+        case 'l':
+            outputTradeLog = true;
+            return true;
+        case 'a':
+            outputAll = true;
+            return true;
+        case 'q':
+            return false;
+        default:
+            std::cout << "Invalid choice" << std::endl;
+            return false;   
+    }
 }

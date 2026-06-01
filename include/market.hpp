@@ -20,7 +20,8 @@ public:
     std::uint32_t getBestBid() const;
     std::uint32_t getBestAsk() const;
     std::uint32_t getOrderCount() const;
-
+    bool getDebug() const { return debug; }
+    bool setOutputs(char choice);
     void outputData();
 private:
     static constexpr std::size_t ORDER_POOL_BYTES = 64 * 1024 * 1024;
@@ -48,8 +49,12 @@ private:
     alignas(64) uint32_t bestBid;
     alignas(64) uint32_t bestAsk;
     alignas(64) uint32_t tradeCount = 0;
-
-    bool output = false;
+    
+    bool debug = false;
+    bool outputTelemetry = false;
+    bool outputOrderBook = false;
+    bool outputTradeLog = false;
+    bool outputAll = false;
 
     Order *createOrder();
     bool queueOrder(Order *order);
