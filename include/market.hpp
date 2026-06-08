@@ -28,6 +28,10 @@ private:
     std::unique_ptr<std::byte[]> orderPoolBuffer;
     std::pmr::monotonic_buffer_resource orderPool;
 
+    static constexpr std::size_t LIMIT_POOL_BYTES = 64 * 1024 * 1024;
+    std::unique_ptr<std::byte[]> limitPoolBuffer;
+    std::pmr::monotonic_buffer_resource limitPool;
+
     Limit *buyTree;
     Limit *sellTree;
     Limit *lowestSell;
@@ -51,12 +55,17 @@ private:
     alignas(64) uint32_t tradeCount = 0;
     
     bool debug = false;
+    enum class OutputChoice {NONE, TELEMETRY, ORDER_BOOK, TRADE_LOG, ALL};
+    OutputChoice outputChoice;
     bool outputTelemetry = false;
     bool outputOrderBook = false;
     bool outputTradeLog = false;
     bool outputAll = false;
 
     Order *createOrder();
+    Limit *createLimit();
+
+
     bool queueOrder(Order *order);
     void addOrder(Order *order);
     void matchOrders();

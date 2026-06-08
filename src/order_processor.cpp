@@ -6,11 +6,12 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <unistd.h>
 #include "random.cpp"
 
 Market::Market()
     : orderPoolBuffer(std::make_unique<std::byte[]>(ORDER_POOL_BYTES)),
-    orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), orderQueue(4095), tradeQueue(4095) {
+    orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), limitPoolBuffer(std::make_unique<std::byte[]>(LIMIT_POOL_BYTES)), limitPool(limitPoolBuffer.get(), LIMIT_POOL_BYTES), orderQueue(4095), tradeQueue(4095) {
     buyTree = nullptr;
     sellTree = nullptr;
     lowestSell = nullptr;
@@ -65,6 +66,11 @@ void Market::getOptions(int argc, char **argv) {
 Order *Market::createOrder() {
     void *mem = orderPool.allocate(sizeof(Order), alignof(Order));
     return new (mem) Order();
+}
+
+Limit *Market::createLimit() {
+    void *mem = limitPool.allocate(sizeof(Limit), alignof(Limit));
+    return new (mem) Limit();
 }
 
 void Market::readOrders() {
@@ -141,6 +147,7 @@ void Market::readOrders() {
         order->entryTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 
         while (!queueOrder(order)) {}
+
     }
     munmap(raw, sb.st_size);
     inputDone.store(true, std::memory_order_release);
@@ -162,18 +169,19 @@ std::uint32_t Market::getOrderCount() const {
 bool Market::setOutputs(char choice) {
     switch (choice) {
         case 't':
-            outputTelemetry = true;
+            outputChoice = OutputChoice::TELEMETRY;
             return true;
         case 'o':
-            outputOrderBook = true;
+            outputChoice = OutputChoice::ORDER_BOOK;
             return true;
         case 'l':
-            outputTradeLog = true;
+            outputChoice = OutputChoice::TRADE_LOG;
             return true;
         case 'a':
-            outputAll = true;
+            outputChoice = OutputChoice::ALL;
             return true;
         case 'q':
+            outputChoice = OutputChoice::NONE;
             return false;
         default:
             std::cout << "Invalid choice" << std::endl;

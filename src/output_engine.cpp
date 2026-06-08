@@ -31,7 +31,7 @@ void Market::processTrade(Trade *trade) {
 void Market::outputData() {
     std::filesystem::create_directories("output");
 
-    if (outputTelemetry || outputAll) {
+    if (Market::outputChoice == OutputChoice::TELEMETRY || Market::outputChoice == OutputChoice::ALL) {
             std::ofstream queueWaitTimes("output/queue_wait_times.txt");
         if (!queueWaitTimes.is_open()) {
             std::cerr << "Failed to open queue wait times file\n";
@@ -96,7 +96,7 @@ void Market::outputData() {
         toQueueTimes.close();
     }
 
-    if (outputOrderBook || outputAll) {
+    if (Market::outputChoice == OutputChoice::ORDER_BOOK || Market::outputChoice == OutputChoice::ALL) {
         std::ofstream lastPrice("./output/last_price.txt");
         if (!lastPrice.is_open()) {
             std::cerr << "Failed to open last price file\n";

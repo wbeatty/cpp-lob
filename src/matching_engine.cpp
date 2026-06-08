@@ -100,15 +100,14 @@ void Market::updateBest(Limit* limit, const bool buyOrder) {
 
 // Create a new limit node and add it to the tree
 Limit *Market::createLimit(const std::uint32_t limitPrice, const bool buyOrder) {
+    Limit *limit = createLimit();
     if (buyOrder) {
-        auto *limit = new Limit();
         limit->limitPrice = limitPrice;
         buyLimitMap[limitPrice] = limit;
         addLimit(limit, buyOrder);
         return limit;
     }
     else {
-        auto *limit = new Limit();
         limit->limitPrice = limitPrice;
         sellLimitMap[limitPrice] = limit;
         addLimit(limit, buyOrder);

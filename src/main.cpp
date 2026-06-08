@@ -13,7 +13,9 @@ int main(int argc, char* argv[]) {
 
     if (market.getDebug()) {
         cout << "Debug Mode Enabled" << endl;
-        cout << "Which data would you like to output? (t)elementry, (o)rder book, (l)og, (a)ll, (q)uit" << endl;
+        cout << "Which data would you like to output?" << endl;
+        cout << "t: telemetry\no: order book\nl: trade log\na: all\nq: quit" << endl;
+        cout << "Enter your choice: ";
         char choice;
         cin >> choice;
         if (!market.setOutputs(choice)) {
