@@ -4,6 +4,8 @@
 struct Order;
 
 struct Limit {
+    Limit() = default;
+
     std::uint32_t limitPrice = 0;
     std::uint32_t size = 0;
     std::uint32_t totalVolume = 0;

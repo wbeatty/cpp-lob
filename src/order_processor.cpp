@@ -10,8 +10,7 @@
 #include "random.cpp"
 
 Market::Market()
-    : orderPoolBuffer(std::make_unique<std::byte[]>(ORDER_POOL_BYTES)),
-    orderPool(orderPoolBuffer.get(), ORDER_POOL_BYTES), limitPoolBuffer(std::make_unique<std::byte[]>(LIMIT_POOL_BYTES)), limitPool(limitPoolBuffer.get(), LIMIT_POOL_BYTES), orderQueue(4095), tradeQueue(4095) {
+    : _limitPool(LIMIT_POOL_CAPACITY), _orderPool(ORDER_POOL_CAPACITY), orderQueue(4095), tradeQueue(4095) {
     buyTree = nullptr;
     sellTree = nullptr;
     lowestSell = nullptr;
@@ -61,16 +60,6 @@ void Market::getOptions(int argc, char **argv) {
     if (inputFile == nullptr) {
         throw std::runtime_error("No input file specified (-f <filename>)");
     }
-}
-
-Order *Market::createOrder() {
-    void *mem = orderPool.allocate(sizeof(Order), alignof(Order));
-    return new (mem) Order();
-}
-
-Limit *Market::createLimit() {
-    void *mem = limitPool.allocate(sizeof(Limit), alignof(Limit));
-    return new (mem) Limit();
 }
 
 void Market::readOrders() {
@@ -139,7 +128,7 @@ void Market::readOrders() {
             continue;
         }
 
-        auto *order = createOrder();
+        auto *order = _orderPool.allocate();
         order->buyOrder = buyOrder;
         order->limitPrice = limitPrice;
         order->shares = shares;

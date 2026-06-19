@@ -9,6 +9,7 @@
 #include "limit.hpp"
 #include "queue.hpp"
 #include "trade.hpp"
+#include "objectpool.hpp"
 
 class Market {
 public:
@@ -24,13 +25,11 @@ public:
     bool setOutputs(char choice);
     void outputData();
 private:
-    static constexpr std::size_t ORDER_POOL_BYTES = 64 * 1024 * 1024;
-    std::unique_ptr<std::byte[]> orderPoolBuffer;
-    std::pmr::monotonic_buffer_resource orderPool;
-
-    static constexpr std::size_t LIMIT_POOL_BYTES = 64 * 1024 * 1024;
-    std::unique_ptr<std::byte[]> limitPoolBuffer;
-    std::pmr::monotonic_buffer_resource limitPool;
+    static constexpr std::size_t ORDER_POOL_CAPACITY = 2 * 1024 * 1024;
+    static constexpr std::size_t LIMIT_POOL_CAPACITY = 1 * 1024 * 1024;
+    
+    ChunkPool<Limit> _limitPool;
+    ChunkPool<Order> _orderPool;
 
     Limit *buyTree;
     Limit *sellTree;
