@@ -1,15 +1,13 @@
 #pragma once
 #include <atomic>
 #include <cstddef>
-#include <memory>
-#include <memory_resource>
 #include <unordered_map>
 #include <vector>
 #include "order.hpp"
 #include "limit.hpp"
 #include "queue.hpp"
 #include "trade.hpp"
-#include "objectpool.hpp"
+#include "chunkpool.hpp"
 
 class Market {
 public:
@@ -28,8 +26,8 @@ private:
     static constexpr std::size_t ORDER_POOL_CAPACITY = 2 * 1024 * 1024;
     static constexpr std::size_t LIMIT_POOL_CAPACITY = 1 * 1024 * 1024;
     
-    ChunkPool<Limit> _limitPool;
-    ChunkPool<Order> _orderPool;
+    MemoryManager<Limit> limitPool;
+    MemoryManager<Order> orderPool;
 
     Limit *buyTree;
     Limit *sellTree;

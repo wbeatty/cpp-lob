@@ -12,12 +12,16 @@ void Market::processOrders() {
     Order *order;
     while (true) {
         if (orderQueue.pop(order)) {
-            order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            if (debug) {
+                order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            }
             addOrder(order);
         } else if (inputDone.load(std::memory_order_acquire)) {
             // read in any orders pushed after the flag was set
             while (orderQueue.pop(order)) {
-                order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                if (debug) {
+                    order->dequeueTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+                }
                 addOrder(order);
             }
             processingDone.store(true, std::memory_order_release);
@@ -41,7 +45,9 @@ void Market::addOrder(Order *order) {
 
     updateBest(limit, order->buyOrder);
     matchOrders();
-    order->addCompletedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (debug) {
+        order->addCompletedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
 }
 
 // Find the limit in the map, return nullptr if it doesn't exist
@@ -100,7 +106,7 @@ void Market::updateBest(Limit* limit, const bool buyOrder) {
 
 // Create a new limit node and add it to the tree
 Limit *Market::createLimit(const std::uint32_t limitPrice, const bool buyOrder) {
-    Limit *limit = _limitPool.allocate();
+    Limit *limit = limitPool.allocate();
     if (buyOrder) {
         limit->limitPrice = limitPrice;
         buyLimitMap[limitPrice] = limit;
@@ -187,15 +193,16 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
         executeOrder(currentBuy, tradedShares);
         executeOrder(currentSell, tradedShares);
 
-        const std::uint64_t executionTime = std::chrono::steady_clock::now().time_since_epoch().count();
-
-        const std::uint64_t takerEntryTime = sellIsMaker ? currentBuy->entryTime : currentSell->entryTime;
-
-        Trade trade{tradeCount++, tradePrice, tradedShares, executionTime, takerEntryTime, currentBuy->idNumber, currentSell->idNumber};
         if (debug) {
+            const std::uint64_t executionTime = std::chrono::steady_clock::now().time_since_epoch().count();
+            const std::uint64_t takerEntryTime = sellIsMaker ? currentBuy->entryTime : currentSell->entryTime;
+
+            Trade trade{tradeCount++, tradePrice, tradedShares, executionTime, takerEntryTime, currentBuy->idNumber, currentSell->idNumber};
             if (!tradeQueue.push(trade)) {
                 std::cerr << "Trade queue full. Dropping trade.\n";
             }
+        } else {
+            tradeCount++;
         }
 
         buyVolume -= tradedShares;
@@ -227,7 +234,9 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
 }
 
 void Market::executeOrder(Order *order, std::uint32_t shares) const {
-    order->eventTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (debug) {
+        order->eventTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
     order->parentLimit->totalVolume -= shares;
     order->shares -= shares;
     if (order->shares == 0) {
@@ -334,5 +343,6 @@ void Market::cancelOrder(std::uint32_t idNumber) {
     }
     order->parentLimit->removeOrder(order);
     updateBest(order->parentLimit, order->buyOrder);
-    orderVector.erase(orderVector.begin() + idNumber);
+    orderVector[idNumber] = nullptr;
+    orderPool.deallocate(order);
 }

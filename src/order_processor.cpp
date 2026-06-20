@@ -1,6 +1,7 @@
 #include "market.hpp"
 #include <chrono>
 #include <charconv>
+#include <cstdlib>
 #include <getopt.h>
 #include <iostream>
 #include <fcntl.h>
@@ -10,7 +11,7 @@
 #include "random.cpp"
 
 Market::Market()
-    : _limitPool(LIMIT_POOL_CAPACITY), _orderPool(ORDER_POOL_CAPACITY), orderQueue(4095), tradeQueue(4095) {
+    : limitPool(LIMIT_POOL_CAPACITY), orderPool(ORDER_POOL_CAPACITY), orderQueue(4095), tradeQueue(4095) {
     buyTree = nullptr;
     sellTree = nullptr;
     lowestSell = nullptr;
@@ -128,7 +129,11 @@ void Market::readOrders() {
             continue;
         }
 
-        auto *order = _orderPool.allocate();
+        auto *order = orderPool.allocate();
+        if (order == nullptr) {
+            std::cerr << "Error: Order Pool Full";
+            exit(1);
+        }
         order->buyOrder = buyOrder;
         order->limitPrice = limitPrice;
         order->shares = shares;
@@ -147,7 +152,9 @@ bool Market::queueOrder(Order *order) {
     if (!orderQueue.push(order)) {
         return false;
     }
-    order->queuedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (debug) {
+        order->queuedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    }
     return true;
 }
 
