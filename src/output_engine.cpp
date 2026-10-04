@@ -3,12 +3,19 @@
 #include "market.hpp"
 #include <fstream>
 #include <filesystem>
+#include <pthread.h>
 
 
 void Market::processOutput() {
     if (!debug) {
         return;
     }
+    // Match the matcher's QoS: on Apple silicon a default-QoS thread can be
+    // parked on an E-core, which halves drain rate and overflows the trade queue.
+#ifdef __APPLE__
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
+    tradeLog.reserve(TRADE_LOG_CAPACITY);
     Trade trade;
     while (true) {
         if (tradeQueue.pop(trade)) {
@@ -37,8 +44,8 @@ void Market::outputData() {
             std::cerr << "Failed to open queue wait times file\n";
             return;
         }
-        for (const auto &order : orderVector) {
-            uint64_t queueWaitTime = order->dequeueTime - order->entryTime;
+        for (const auto &order : orderTimings) {
+            uint64_t queueWaitTime = order.dequeueTime - order.entryTime;
             queueWaitTimes << queueWaitTime << "\n";
         }
         queueWaitTimes.close();
@@ -48,8 +55,8 @@ void Market::outputData() {
             std::cerr << "Failed to open matcher processing times file\n";
             return;
         }
-        for (const auto &order : orderVector) {
-            uint64_t matcherProcessingTime = order->addCompletedTime - order->dequeueTime;
+        for (const auto &order : orderTimings) {
+            uint64_t matcherProcessingTime = order.addCompletedTime - order.dequeueTime;
             matcherProcessingTimes << matcherProcessingTime << "\n";
         }
         matcherProcessingTimes.close();
@@ -60,8 +67,8 @@ void Market::outputData() {
             std::cerr << "Failed to open end to end times file\n";
             return;
         }
-        for (const auto &order : orderVector) {
-            uint64_t endToEndTime = order->addCompletedTime - order->entryTime;
+        for (const auto &order : orderTimings) {
+            uint64_t endToEndTime = order.addCompletedTime - order.entryTime;
             endToEndTimes << endToEndTime << "\n";
         }
         endToEndTimes.close();
@@ -84,8 +91,8 @@ void Market::outputData() {
         }
         uint64_t sum = 0;
         uint64_t count = 0;
-        for (const auto &order : orderVector) {
-            sum += order->queuedTime - order->entryTime;
+        for (const auto &order : orderTimings) {
+            sum += order.queuedTime - order.entryTime;
             if (count == 1000) {
                 toQueueTimes << sum / count << "\n";
                 sum = 0;

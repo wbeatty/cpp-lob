@@ -6,9 +6,11 @@ cpp-lob-profile.dSYM/
 .idea/
 .clangd
 .vscode/
+data/
 output.txt
 .venv/
 analysis/data.ipynb
 output/
 compile_commands.json
 .cache/
+cancel-test

@@ -61,6 +61,11 @@ void Market::getOptions(int argc, char **argv) {
     if (inputFile == nullptr) {
         throw std::runtime_error("No input file specified (-f <filename>)");
     }
+
+    if (debug) {
+        tradeQueue.reset(TRADE_QUEUE_DEBUG_SIZE);
+        orderTimings.reserve(6000000);
+    }
 }
 
 void Market::readOrders() {

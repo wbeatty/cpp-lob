@@ -8,7 +8,9 @@
 
 // Main matching engine loop
 void Market::processOrders() {
+#ifdef __APPLE__
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
     Order *order;
     while (true) {
         if (orderQueue.pop(order)) {
@@ -43,10 +45,20 @@ void Market::addOrder(Order *order) {
     
     limit->addOrder(*order);
 
+    // matchOrders() may fill `order` completely and return it to the pool, so
+    // copy its timestamps out first and do not touch `order` afterwards.
+    OrderTiming timing;
+    if (debug) {
+        timing.entryTime = order->entryTime;
+        timing.queuedTime = order->queuedTime;
+        timing.dequeueTime = order->dequeueTime;
+    }
+
     updateBest(limit, order->buyOrder);
     matchOrders();
     if (debug) {
-        order->addCompletedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        timing.addCompletedTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+        orderTimings.push_back(timing);
     }
 }
 
@@ -90,16 +102,28 @@ void Market::updateBest(Limit* limit, const bool buyOrder) {
         if (highestBuy == nullptr
             || limit->limitPrice > highestBuy->limitPrice
             || limit == highestBuy) {
-            highestBuy = limit;
-            bestBid = limit->limitPrice;
+                if (limit == highestBuy && limit->totalVolume == 0) {
+                    highestBuy = findBestBuy(limit);
+                    bestBid = highestBuy ? highestBuy->limitPrice : 0;
+                }
+                else {
+                    highestBuy = limit;
+                    bestBid = limit->limitPrice;
+                }
         }
     }
     else {
         if (lowestSell == nullptr
             || limit->limitPrice < lowestSell->limitPrice
             || limit == lowestSell) {
-            lowestSell = limit;
-            bestAsk = limit->limitPrice;
+                if (limit == lowestSell && limit->totalVolume == 0) {
+                    lowestSell = findBestSell(limit);
+                    bestAsk = lowestSell ? lowestSell->limitPrice : 0;
+                }
+                else {
+                    lowestSell = limit;
+                    bestAsk = limit->limitPrice;
+                }
         }
     }
 }
@@ -199,7 +223,7 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
 
             Trade trade{tradeCount++, tradePrice, tradedShares, executionTime, takerEntryTime, currentBuy->idNumber, currentSell->idNumber};
             if (!tradeQueue.push(trade)) {
-                std::cerr << "Trade queue full. Dropping trade.\n";
+                droppedTrades++;
             }
         } else {
             tradeCount++;
@@ -233,7 +257,7 @@ void Market::executeLimit(Limit* buyLimit, Limit* sellLimit) {
     }
 }
 
-void Market::executeOrder(Order *order, std::uint32_t shares) const {
+void Market::executeOrder(Order *order, std::uint32_t shares) {
     if (debug) {
         order->eventTime = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
     }
@@ -241,6 +265,8 @@ void Market::executeOrder(Order *order, std::uint32_t shares) const {
     order->shares -= shares;
     if (order->shares == 0) {
         order->parentLimit->removeOrder(order);
+        orderVector[order->idNumber] = nullptr;
+        orderPool.deallocate(order);
     }
 }
 
@@ -258,6 +284,7 @@ void Limit::removeOrder(Order* order) {
     order->prevOrder = nullptr;
     order->nextOrder = nullptr;
     size--;
+    totalVolume -= order->shares;
 }
 
 Limit* bstMaximum(Limit *limit) {
@@ -337,6 +364,9 @@ Limit *Market::findBestSell(Limit *limit) {
 }
 
 void Market::cancelOrder(std::uint32_t idNumber) {
+    if (idNumber >= orderVector.size()) {
+        return;
+    }
     Order *order = orderVector[idNumber];
     if (order == nullptr) {
         return;

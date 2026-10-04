@@ -6,7 +6,7 @@ template<typename T>
 
 class SPSCQueue {
 private:
-    const size_t capacity;
+    size_t capacity; // always a power of two: push/pop mask with (capacity - 1)
     std::vector<T> buffer;
 
     alignas(64)std::atomic<size_t> writeIndex{0};
@@ -14,6 +14,15 @@ private:
     alignas(64)std::atomic<bool> isReading{false};
 public:
     SPSCQueue(size_t size) : capacity(size + 1), buffer(size + 1) {}
+
+    // Re-sizes the ring. NOT thread-safe: only valid before the producer and
+    // consumer threads start. `size` must be (power of two - 1), as in the ctor.
+    void reset(size_t size) {
+        capacity = size + 1;
+        buffer.assign(capacity, T{});
+        writeIndex.store(0, std::memory_order_relaxed);
+        readIndex.store(0, std::memory_order_relaxed);
+    }
     
     bool push(T& order) {
         size_t currentTail = writeIndex.load(std::memory_order_relaxed);
